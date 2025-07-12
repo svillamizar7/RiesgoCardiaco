@@ -32,7 +32,8 @@ st.set_page_config(page_title="Modelo IA para predicción de problemas cardiacos
 
 # Display banner image
 if cabezote_img:
-    st.image(cabezote_img, use_column_width=True)
+    #st.image(cabezote_img, use_column_width=True)
+    st.image(cabezote_img, use_container_width=True)
 
 # Title
 st.title("Modelo IA para predicción de problemas cardiacos")
@@ -68,13 +69,15 @@ if prediction[0] == 0:
     st.write("## **0: ¡No sufrirá del corazón! 😊**")
     st.markdown("</div>", unsafe_allow_html=True)
     if no_sufre_img:
-        st.image(no_sufre_img, use_column_width=False, width=300)
+        #st.image(no_sufre_img, use_column_width=False, width=300)
+        st.image(no_sufre_img, use_container_width=False, width=300)
 else:
     st.markdown("<div style='background-color: lightcoral; padding: 10px; border-radius: 5px; color: black;'>", unsafe_allow_html=True)
     st.write("## **1: Sufrirá del corazón 😥**")
     st.markdown("</div>", unsafe_allow_html=True)
     if si_sufre_img:
-        st.image(si_sufre_img, use_column_width=False, width=300)
+        #st.image(si_sufre_img, use_column_width=False, width=300)
+        st.image(si_sufre_img, use_container_width=False, width=300)
 
 # Footer
 st.markdown("---")
