@@ -1,50 +1,81 @@
+# prompt: Eres experto en streamlit y requiero realizar un deployment de la aplicación para determinar si un paciente sufrirá o no del corazón. El modelo fue entrenado usando sklearn con SVC y los datos de entrada fueron escalados usando minmax scaler. Modelo: modelo_svc.jb Escalador: scaler.jb Los modelos fueron guardados usando joblib Coloque un título así: Modelo IA para predicción de problemas cardiacos Haga un resumen de cómo funciona el modelo para los usuarios. Coloque en la parte de abajo "Elaborado por: SergioVilla" con un emoji de copyright UNAB 2025 En el lado izquierdo coloca un sidebar donde con un slider el usuario escoja lo siguiente: Edad: 20 años a 80 años con incrementos de 1 año. Colesterol: Use los valores de parámetros de niveles de colesterol desde 120 hasta 600 con incrementos de 10. Por defecto, los valores seleccionados sean Edad: 20 años, Colesterol: 200. Estos datos deben pasar por el scaler. Los resultados son: 0: No sufrirá del corazón, ponerlo en fondo verde y letras negras con un emoji feliz y debajo aparece una imagen llamada NoSufre.jpg; y 1: Sufrirá del corazón, ponerlo en fondo rojo con letras negras y un emoji triste, y debajo una imagen llamada SiSufre.jpg. Antes del título poner una imagen tipo banner llamada Cabezote.jpg
+# NO EJECUTAR CON EL BOTÓN DE RUN
+# Se ejecuta primero cargando las bibliotecas requeridas con pip install -r requirements.txt
+# Se ejecuta con streamlit run app.py desde el terminal
+
 import streamlit as st
 import joblib
 import pandas as pd
+from PIL import Image
 
-# Cargar el modelo y el scaler
-# Asegúrate de que 'modelo_svc.pkl' esté en la misma carpeta o proporciona la ruta correcta
+# Load the model and scaler
 try:
-    model_svc = joblib.load('modelo_svc.pkl')
-    # Necesitamos el scaler usado para normalizar los datos de entrenamiento
-    # Dado que no se guardó en el cuaderno original, asumiremos un nuevo scaler
-    # y lo fitearemos con datos de ejemplo o si es posible, guardarlo en el futuro.
-    # Para este ejemplo, usaremos valores de ejemplo para el scaler
-    from sklearn.preprocessing import MinMaxScaler
-    scaler = MinMaxScaler()
-    # Fit the scaler with example data that represents the range of your training data
-    # (ideally you would save the fitted scaler)
-    example_data = pd.DataFrame({'edad': [0, 100], 'colesterol': [0, 600]}) # Example range
-    scaler.fit(example_data[['edad', 'colesterol']])
-
+    modelo_svc = joblib.load('modelo_svc.jb')
+    scaler = joblib.load('scaler.jb')
 except FileNotFoundError:
-    st.error("Error: modelo_svc.pkl no encontrado. Asegúrate de que el archivo del modelo está en la misma carpeta.")
-    st.stop()
-except Exception as e:
-    st.error(f"Error al cargar el modelo o el scaler: {e}")
+    st.error("Error: modelo_svc.jb or scaler.jb not found. Please ensure they are in the same directory as the app.")
     st.stop()
 
+# Load images
+try:
+    cabezote_img = Image.open('Cabezote.jpg')
+    no_sufre_img = Image.open('NoSufre.jpg')
+    si_sufre_img = Image.open('SiSufre.jpg')
+except FileNotFoundError:
+    st.warning("Warning: One or more image files (Cabezote.jpg, NoSufre.jpg, SiSufre.jpg) not found. Image display will be skipped.")
+    cabezote_img = None
+    no_sufre_img = None
+    si_sufre_img = None
 
-st.title("Predicción de Problemas Cardiacos - Support Vector Machine (SVC)")
-st.markdown("<h2 style='color: red;'>Elaborado por SergioVilla</h2>", unsafe_allow_html=True)
+# Set page title and icon
+st.set_page_config(page_title="Modelo IA para predicción de problemas cardiacos", page_icon=":heart:")
 
-st.write("Por favor, introduce los valores para predecir el riesgo de problemas cardiacos.")
+# Display banner image
+if cabezote_img:
+    st.image(cabezote_img, use_column_width=True)
 
-edad = st.slider("Edad", min_value=0, max_value=100, value=50)
-colesterol = st.slider("Colesterol", min_value=0, max_value=600, value=200)
+# Title
+st.title("Modelo IA para predicción de problemas cardiacos")
 
-if st.button("Predecir"):
-    # Crear un DataFrame con los valores de entrada
-    input_data = pd.DataFrame({'edad': [edad], 'colesterol': [colesterol]})
+# Model explanation
+st.write("""
+Este modelo utiliza Machine Learning para predecir la probabilidad de que un paciente sufra problemas cardiacos
+basado en su edad y nivel de colesterol. El modelo fue entrenado utilizando un algoritmo de Máquinas de Vectores de Soporte (SVC)
+y los datos de entrada fueron escalados para mejorar el rendimiento del modelo.
+""")
 
-    # Normalizar los datos de entrada usando el mismo scaler que se usó para entrenar el modelo
-    # Aquí asumimos que el scaler fue fitado con un rango similar al de entrenamiento
-    input_data_scaled = scaler.transform(input_data)
+# Sidebar for user input
+st.sidebar.header("Parámetros del paciente")
 
-    # Realizar la predicción
-    prediction = model_svc.predict(input_data_scaled)
+edad = st.sidebar.slider("Edad", 20, 80, 20, 1)
+colesterol = st.sidebar.slider("Colesterol", 120, 600, 200, 10)
 
-    if prediction[0] == 1:
-        st.write("Riesgo de Problemas Cardiacos 😢")
-    else:
-        st.write("Paciente Sano 😊")
+# Prepare input data for prediction
+input_data = pd.DataFrame({'edad': [edad], 'colesterol': [colesterol]})
+
+# Scale the input data
+scaled_input_data = scaler.transform(input_data)
+scaled_input_df = pd.DataFrame(scaled_input_data, columns=['edad', 'colesterol'])
+
+# Make prediction
+prediction = modelo_svc.predict(scaled_input_df)
+
+# Display results
+st.subheader("Resultado de la Predicción:")
+
+if prediction[0] == 0:
+    st.markdown("<div style='background-color: lightgreen; padding: 10px; border-radius: 5px; color: black;'>", unsafe_allow_html=True)
+    st.write("## **0: ¡No sufrirá del corazón! 😊**")
+    st.markdown("</div>", unsafe_allow_html=True)
+    if no_sufre_img:
+        st.image(no_sufre_img, use_column_width=False, width=300)
+else:
+    st.markdown("<div style='background-color: lightcoral; padding: 10px; border-radius: 5px; color: black;'>", unsafe_allow_html=True)
+    st.write("## **1: Sufrirá del corazón 😥**")
+    st.markdown("</div>", unsafe_allow_html=True)
+    if si_sufre_img:
+        st.image(si_sufre_img, use_column_width=False, width=300)
+
+# Footer
+st.markdown("---")
+st.write("Elaborado por: SergioVilla © UNAB 2025")
